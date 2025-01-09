@@ -85,6 +85,49 @@ function handleMove(ws, data) {
         player.sendUTF(JSON.stringify({ action: 'update', move }));
     });
 
+    // // Changer de joueur
+    // room.currentPlayer = room.currentPlayer === room.players[0] ? room.players[1] : room.players[0];
+
+    // // Envoyer le changement de joueur à tous les joueurs
+    // room.players.forEach(player => {
+    //     player.sendUTF(JSON.stringify({ action: 'changePlayer', currentPlayer: room.currentPlayer.username }));
+    // });
+}
+
+function handleContinuousJump(ws, data) {
+    const { roomId, position } = data;
+    const room = rooms[roomId];
+    
+    if (!room) return;
+    room.players.forEach(player => {
+        player.sendUTF(JSON.stringify({
+            action: 'continuousJump',
+            position,
+            currentPlayer: room.currentPlayer.username
+        }));
+    });
+}
+
+
+function handleEndTurn(ws, data) {
+    const { roomId } = data;
+    const room = rooms[roomId];
+    if (!room) {
+        ws.sendUTF(JSON.stringify({
+            action: 'error',
+            message: 'La partie n\'a pas encore commencé'
+        }));
+        return;
+    }
+
+    if (room.currentPlayer !== ws) {
+        ws.sendUTF(JSON.stringify({
+            action: 'error', 
+            message: 'Ce n\'est pas votre tour'
+        }));
+        return;
+    }
+
     // Changer de joueur
     room.currentPlayer = room.currentPlayer === room.players[0] ? room.players[1] : room.players[0];
 
@@ -152,4 +195,4 @@ function handleEnd(ws, data) {
     }
 }
 
-module.exports = { handleJoin, handleMove, handleDisconnect,handleCapture, handleKing, handleEnd };
+module.exports = { handleJoin, handleMove, handleDisconnect,handleCapture, handleKing, handleContinuousJump, handleEndTurn, handleEnd };

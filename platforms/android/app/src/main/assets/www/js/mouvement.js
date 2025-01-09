@@ -4,7 +4,6 @@ import gameState from './gameState.js';
 
 let selectedPiece = null;
 let mustJump = false;
-let jumpedPieces = [];
 
 export function handleWebSocketMessage(data) {
     console.log(`Action received: ${data.action}`);
@@ -23,6 +22,14 @@ export function handleWebSocketMessage(data) {
 
         case 'update':
             handleMove(data.move);
+            break;
+
+        case 'continuousJump':
+            if (data.currentPlayer === localStorage.getItem('username')) {
+                updateGameStatus("Vous pouvez continuer à capturer!");
+            } else {
+                updateGameStatus(`${data.currentPlayer} peut continuer à capturer`);
+            }
             break;
 
         case 'changePlayer':
@@ -114,11 +121,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// 在 movePiece 函数中，修改检查连续吃子的逻辑
+
 function movePiece(from, to) {
     const currentPlayer = gameState.joueur;
     const playerColor = localStorage.getItem('playerColor');
 
-    // Vérifier si c'est le tour du joueur
     if (currentPlayer !== playerColor || gameState.joueur !== playerColor) {
         alert("Ce n'est pas votre tour.");
         resetSelection(); 
@@ -131,7 +139,29 @@ function movePiece(from, to) {
         return;
     }
 
-    // Vérifier si le mouvement est valide
+    // 检查目标位置是否已经有棋子
+    if (to.querySelector('svg')) {
+        resetSelection();
+        return;
+    }
+
+    const fromRow = parseInt(from.dataset.row);
+    const fromCol = parseInt(from.dataset.col);
+    const toRow = parseInt(to.dataset.row);
+    const toCol = parseInt(to.dataset.col);
+
+    const isJumpMove = Math.abs(fromRow - toRow) === 2;
+
+    let canContinueJump = false;
+    if (isJumpMove) {
+        const tempTo = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
+        if (tempTo) {
+            tempTo.innerHTML = from.innerHTML;
+            const furtherJumps = findAvailableJumps(tempTo);
+            canContinueJump = furtherJumps.length > 0;
+            tempTo.innerHTML = '';
+        }
+    }
     if (!mouvemenValable(from, to)) {
         alert("Mouvement non valable.");
         resetSelection(); 
@@ -140,19 +170,10 @@ function movePiece(from, to) {
 
     const roomId = localStorage.getItem('roomId');
     const move = { from: getCellPosition(from), to: getCellPosition(to) };
-    // Envoyer le mouvement au serveur
+ 
     ws.send(JSON.stringify({ action: 'move', roomId, move }));
 
-    from.classList.remove('selected');
-    resetSelection();
-
-    const fromRow = parseInt(from.dataset.row);
-    const fromCol = parseInt(from.dataset.col);
-    const toRow = parseInt(to.dataset.row);
-    const toCol = parseInt(to.dataset.col);
-
-    // Vérifier si une pièce a été capturée
-    if (Math.abs(fromRow - toRow) === 2) {
+    if (isJumpMove) {
         const midRow = (fromRow + toRow) / 2;
         const midCol = (fromCol + toCol) / 2;
         const capturedPiece = document.querySelector(`[data-row="${midRow}"][data-col="${midCol}"]`);
@@ -167,21 +188,37 @@ function movePiece(from, to) {
                 }
             }));
         }
-    }
 
-    const newCell = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
-    const furtherJumps = findAvailableJumps(newCell);
-    
-    // Si un autre saut est possible, sélectionnez la pièce et continuez
-    if (furtherJumps.length > 0) {
-        selectedPiece = newCell;
-        newCell.classList.add('selected');
-        mustJump = true;
+        if (canContinueJump) {
+            selectedPiece = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
+            selectedPiece.classList.add('selected');
+            mustJump = true;
+            ws.send(JSON.stringify({
+                action: 'continuousJump',
+                roomId,
+                position: {
+                    row: toRow,
+                    col: toCol
+                }
+            }));
+        } else {
+            ws.send(JSON.stringify({ 
+                action: 'endTurn', 
+                roomId 
+            }));
+            resetSelection();
+            mustJump = false;
+        }
     } else {
+        ws.send(JSON.stringify({ 
+            action: 'endTurn', 
+            roomId 
+        }));
         resetSelection();
         mustJump = false;
-        checkForWinner();
     }
+
+    checkForWinner();
 }
 
 function handleCapture(position) {
@@ -244,19 +281,25 @@ function mouvemenValable(from, to) {
         return false;
     }
 
-    const dx = Math.abs(parseInt(from.dataset.row) - parseInt(to.dataset.row));
-    const dy = Math.abs(parseInt(from.dataset.col) - parseInt(to.dataset.col));
+    if (to.querySelector('svg')) {
+        return false;
+    }
+
+    const dx = Math.abs(fromRow - toRow);
+    const dy = Math.abs(fromCol - toCol);
 
     const availableJumps = findAvailableJumps(from);
+    console.log('Checking jumps:', availableJumps);
+    
     if (availableJumps.length > 0) {
         mustJump = true;
         return availableJumps.some(jump => 
-            jump.row === toRow && jump.col === toCol
+            parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
         );
     }
 
     if (dx === 1 && dy === 1 && !mustJump) {
-        return to.innerHTML === '';
+        return true;
     }
 
     return false;
@@ -293,19 +336,26 @@ function findAvailableJumps(cell) {
             
             if (midCell && targetCell) {
                 const midPiece = midCell.querySelector('svg');
-                if (midPiece && 
+                const targetPiece = targetCell.querySelector('svg');
+                
+                if (midPiece && !targetPiece &&
                     ((isWhite && midPiece.classList.contains('noir')) || 
-                     (!isWhite && midPiece.classList.contains('blanc'))) && 
-                    targetCell.innerHTML === '') {
-                        availableJumps.push({
-                            row: targetRow,
-                            col: targetCol,
-                            captured: midCell
+                     (!isWhite && midPiece.classList.contains('blanc')))) {
+                    
+                    availableJumps.push({
+                        row: targetRow,
+                        col: targetCol,
+                        captured: {
+                            row: midRow,
+                            col: midCol
+                        }
                     });
                 }
             }
         });
     });
+    
+    console.log('Available jumps for piece at', row, col, ':', availableJumps);
     
     return availableJumps;
 }

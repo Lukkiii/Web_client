@@ -5,7 +5,7 @@ const connectDB = require('./db.js');
 const WebSocketServer = require('websocket').server;
 
 const { handleRegister, handleLogin } = require('./controllers/user');
-const { handleJoin, handleMove, handleDisconnect, handleCapture, handleKing, handleEnd } = require('./controllers/gameController');
+const { handleJoin, handleMove, handleDisconnect, handleCapture, handleKing, handleContinuousJump, handleEndTurn, handleEnd } = require('./controllers/gameController');
 
 connectDB();
 
@@ -48,6 +48,14 @@ wsServer.on('request', (request) => {
                     break;
                 case 'move':
                     handleMove(ws, data);
+                    break;
+
+                case 'continuousJump':
+                    handleContinuousJump(ws, data);
+                    break;
+                
+                case 'endTurn':
+                    handleEndTurn(ws, data);
                     break;
                 
                 case 'capture':
