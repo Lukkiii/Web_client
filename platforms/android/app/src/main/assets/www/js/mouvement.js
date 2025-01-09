@@ -271,19 +271,23 @@ function mouvemenValable(from, to) {
     const isWhite = piece.classList.contains('blanc');
     const isKing = piece.classList.contains('king');
 
-    const properDirection = isKing ? true : 
-                          isWhite ? (fromRow > toRow) : (fromRow < toRow);
-    
-    if (!properDirection) {
+    const dx = Math.abs(fromRow - toRow);
+    const dy = Math.abs(fromCol - toCol);
+
+    if (dx !== dy) {
         return false;
+    }
+
+    if (!isKing) {
+        const properDirection = isWhite ? (fromRow > toRow) : (fromRow < toRow);
+        if (!properDirection) {
+            return false;
+        }
     }
 
     if (to.querySelector('svg')) {
         return false;
     }
-
-    const dx = Math.abs(fromRow - toRow);
-    const dy = Math.abs(fromCol - toCol);
 
     let hasAnyPieceJump = false;
     const playerColor = localStorage.getItem('playerColor');
@@ -309,6 +313,22 @@ function mouvemenValable(from, to) {
         return false;  
     }
     
+    if (isKing) {
+        const rowStep = toRow > fromRow ? 1 : -1;
+        const colStep = toCol > fromCol ? 1 : -1;
+        let currentRow = fromRow + rowStep;
+        let currentCol = fromCol + colStep;
+        
+        while (currentRow !== toRow && currentCol !== toCol) {
+            const cell = document.querySelector(`[data-row="${currentRow}"][data-col="${currentCol}"]`);
+            if (cell && cell.querySelector('svg')) {
+                return false;
+            }
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        return true;
+    }
 
     if (dx === 1 && dy === 1) {
         return true;
@@ -330,10 +350,51 @@ function findAvailableJumps(cell) {
     const isKing = piece.classList.contains('king');
 
     const availableJumps = [];
-    const directions = isKing ? [-1, 1] : isWhite ? [-1] : [1];
+    const directions = isKing ? [[-1, -1], [-1, 1], [1, -1], [1, 1]] : 
+                      isWhite ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
 
-    directions.forEach(dx => {
-        [-1, 1].forEach(dy => {
+    directions.forEach(([dx, dy]) => {
+        if (isKing) {
+            let currentRow = row;
+            let currentCol = col;
+            let foundEnemy = null;
+            
+            while (true) {
+                currentRow += dx;
+                currentCol += dy;
+                
+                if (currentRow < 0 || currentRow > 9 || currentCol < 0 || currentCol > 9) {
+                    break;
+                }
+
+                const checkCell = document.querySelector(`[data-row="${currentRow}"][data-col="${currentCol}"]`);
+                if (!checkCell) break;
+
+                const checkPiece = checkCell.querySelector('svg');
+                
+                if (checkPiece) {
+                    if (foundEnemy) {
+                        break;
+                    }
+                    
+                    if ((isWhite && checkPiece.classList.contains('noir')) || 
+                        (!isWhite && checkPiece.classList.contains('blanc'))) {
+                        foundEnemy = {
+                            row: currentRow,
+                            col: currentCol
+                        };
+                    } else {
+                        break;
+                    }
+                } else if (foundEnemy) {
+                    availableJumps.push({
+                        row: currentRow,
+                        col: currentCol,
+                        captured: foundEnemy
+                    });
+                }
+            }
+        } else {
             const midRow = row + dx;
             const midCol = col + dy;
             const targetRow = row + (dx * 2);
@@ -352,8 +413,7 @@ function findAvailableJumps(cell) {
                 
                 if (midPiece && !targetPiece &&
                     ((isWhite && midPiece.classList.contains('noir')) || 
-                     (!isWhite && midPiece.classList.contains('blanc')))) {
-                    
+                        (!isWhite && midPiece.classList.contains('blanc')))) {
                     availableJumps.push({
                         row: targetRow,
                         col: targetCol,
@@ -364,7 +424,7 @@ function findAvailableJumps(cell) {
                     });
                 }
             }
-        });
+        }
     });
     
     console.log('Available jumps for piece at', row, col, ':', availableJumps);
