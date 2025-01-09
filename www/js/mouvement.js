@@ -121,8 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// 在 movePiece 函数中，修改检查连续吃子的逻辑
-
 function movePiece(from, to) {
     const currentPlayer = gameState.joueur;
     const playerColor = localStorage.getItem('playerColor');
