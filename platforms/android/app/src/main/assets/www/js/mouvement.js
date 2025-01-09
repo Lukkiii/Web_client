@@ -121,8 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// 在 movePiece 函数中，修改检查连续吃子的逻辑
-
 function movePiece(from, to) {
     const currentPlayer = gameState.joueur;
     const playerColor = localStorage.getItem('playerColor');
@@ -139,7 +137,6 @@ function movePiece(from, to) {
         return;
     }
 
-    // 检查目标位置是否已经有棋子
     if (to.querySelector('svg')) {
         resetSelection();
         return;
@@ -288,17 +285,32 @@ function mouvemenValable(from, to) {
     const dx = Math.abs(fromRow - toRow);
     const dy = Math.abs(fromCol - toCol);
 
+    let hasAnyPieceJump = false;
+    const playerColor = localStorage.getItem('playerColor');
+    document.querySelectorAll('.cell').forEach(cell => {
+        const playerPiece = cell.querySelector('svg');
+        if (playerPiece && playerPiece.classList.contains(playerColor.toLowerCase())) {
+            const jumps = findAvailableJumps(cell);
+            if (jumps.length > 0) {
+                hasAnyPieceJump = true;
+            }
+        }
+    });
+
     const availableJumps = findAvailableJumps(from);
     console.log('Checking jumps:', availableJumps);
-    
-    if (availableJumps.length > 0) {
-        mustJump = true;
-        return availableJumps.some(jump => 
-            parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
-        );
+    if (hasAnyPieceJump){
+        if (availableJumps.length > 0) {
+            mustJump = true;
+            return availableJumps.some(jump => 
+                parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
+            );
+        }
+        return false;  
     }
+    
 
-    if (dx === 1 && dy === 1 && !mustJump) {
+    if (dx === 1 && dy === 1) {
         return true;
     }
 
@@ -363,10 +375,31 @@ function findAvailableJumps(cell) {
 function pieceAuBonJoueur(cell) {
     const playerColor = localStorage.getItem('playerColor');
     const piece = cell.querySelector('svg');
-    if (piece && piece.classList.contains(playerColor.toLowerCase())) {
-        return true;
+    if (!piece || !piece.classList.contains(playerColor.toLowerCase())) {
+        return false;
     }
-    return false;
+
+    const allPlayerPieces = document.querySelectorAll('.cell');
+    let hasAnyPieceJump = false;
+    allPlayerPieces.forEach(playerCell => {
+        const playerPiece = playerCell.querySelector('svg');
+        if (playerPiece && playerPiece.classList.contains(playerColor.toLowerCase())) {
+            const jumps = findAvailableJumps(playerCell);
+            if (jumps.length > 0) {
+                hasAnyPieceJump = true;
+            }
+        }
+    });
+
+    if (hasAnyPieceJump) {
+        const currentPieceJumps = findAvailableJumps(cell);
+        if (currentPieceJumps.length === 0) {
+            alert("Vous devez sélectionner une pièce qui peut capturer.");
+            return false;
+        }
+    }
+
+    return true;
 }
 
 function checkForWinner() {
