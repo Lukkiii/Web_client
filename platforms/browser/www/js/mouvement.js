@@ -5,6 +5,7 @@ import gameState from './gameState.js';
 let selectedPiece = null;
 let mustJump = false;
 
+// Gestion des messages WebSocket
 export function handleWebSocketMessage(data) {
     console.log(`Action received: ${data.action}`);
     switch (data.action) {
@@ -59,10 +60,12 @@ export function handleWebSocketMessage(data) {
     }
 };
 
+// Mise à jour du statut du jeu
 function updateGameStatus(message) {
     document.getElementById('joueurActu').innerText = message;
 }
 
+// Gestion de l'assignation de couleur
 function handleColorAssignment(data) {
     console.log(`Couleur assignée : ${data.maCouleur}`);
     localStorage.setItem('roomId', data.roomId);
@@ -71,6 +74,7 @@ function handleColorAssignment(data) {
     document.getElementById('player-info').innerText = `Joueur : ${localStorage.getItem('username')} | Couleur : ${data.maCouleur}`;
 }
 
+// Gestion des mouvements
 function handleMove(move) {
     const { from, to } = move;
     const fromCell = document.querySelector(`[data-row="${from.row}"][data-col="${from.col}"]`);
@@ -103,6 +107,7 @@ function handleMove(move) {
     }
 }
 
+// Gestion des clics sur les cellules
 document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll(".cell").forEach(cell => {
         cell.addEventListener("click", function() {
@@ -121,13 +126,15 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+// Fonction pour déplacer une pièce
 function movePiece(from, to) {
     const currentPlayer = gameState.joueur;
     const playerColor = localStorage.getItem('playerColor');
 
+    // vérifier si c'est le tour du joueur
     if (currentPlayer !== playerColor || gameState.joueur !== playerColor) {
         alert("Ce n'est pas votre tour.");
-        resetSelection(); 
+        resetSelection();
         return;
     }
 
@@ -142,48 +149,36 @@ function movePiece(from, to) {
         return;
     }
 
-    // const fromRow = parseInt(from.dataset.row);
-    // const fromCol = parseInt(from.dataset.col);
     const toRow = parseInt(to.dataset.row);
     const toCol = parseInt(to.dataset.col);
 
+    // vérifier si le joueur doit capturer
     const jumps = findAvailableJumps(from);
-    const isJumpMove = jumps.some(jump => 
+    const currentJump = jumps.find(jump =>
         parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
     );
+    const isJumpMove = currentJump !== undefined;
 
-    let canContinueJump = false;
-    if (isJumpMove) {
-        const tempTo = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
-        if (tempTo) {
-            tempTo.innerHTML = from.innerHTML;
-            const furtherJumps = findAvailableJumps(tempTo);
-            canContinueJump = furtherJumps.length > 0;
-            tempTo.innerHTML = '';
-        }
-    }
+    // vérifier si le mouvement est valide
     if (!mouvemenValable(from, to)) {
         alert("Mouvement non valable.");
-        resetSelection(); 
+        resetSelection();
         return;
     }
 
+    // envoyer le mouvement au serveur
     const roomId = localStorage.getItem('roomId');
     const move = { from: getCellPosition(from), to: getCellPosition(to) };
- 
     ws.send(JSON.stringify({ action: 'move', roomId, move }));
 
+    // gestion des sauts
     if (isJumpMove) {
-
-        const currentJump = jumps.find(jump => 
-            parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
-        );
-        
         if (currentJump && currentJump.captured) {
+            // vérifier si le jeu est terminé
             let whitePieces = 0;
             let blackPieces = 0;
             document.querySelectorAll('.cell').forEach(cell => {
-                if (cell.dataset.row === String(currentJump.captured.row) && 
+                if (cell.dataset.row === String(currentJump.captured.row) &&
                     cell.dataset.col === String(currentJump.captured.col)) {
                     return;
                 }
@@ -199,6 +194,7 @@ function movePiece(from, to) {
                 return;
             }
 
+            // envoyer un message de capture
             ws.send(JSON.stringify({
                 action: 'capture',
                 roomId,
@@ -206,36 +202,58 @@ function movePiece(from, to) {
             }));
         }
 
-        if (canContinueJump) {
-            selectedPiece = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
-            selectedPiece.classList.add('selected');
-            mustJump = true;
-            ws.send(JSON.stringify({
-                action: 'continuousJump',
-                roomId,
-                position: {
-                    row: toRow,
-                    col: toCol
-                }
-            }));
-        } else {
-            ws.send(JSON.stringify({ 
-                action: 'endTurn', 
-                roomId 
-            }));
-            resetSelection();
-            mustJump = false;
+        // vérifier si le joueur peut continuer à capturer
+        const tempTo = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
+        if (tempTo) {
+            tempTo.innerHTML = from.innerHTML;
+            const furtherJumps = findAvailableJumps(tempTo);
+            // vérifier si le joueur peut continuer à capturer
+            const canContinueJump = furtherJumps.some(jump => {
+                // vérifier si la pièce capturée est différente de la pièce capturée précédemment
+                return jump.captured && 
+                    !(jump.captured.row === currentJump.captured.row && 
+                        jump.captured.col === currentJump.captured.col);
+            });
+            tempTo.innerHTML = '';
+
+            if (canContinueJump) {
+                selectedPiece = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
+                selectedPiece.classList.add('selected');
+                mustJump = true;
+                ws.send(JSON.stringify({
+                    action: 'continuousJump',
+                    roomId,
+                    position: { row: toRow, col: toCol }
+                }));
+                return;
+            }
         }
-    } else {
-        ws.send(JSON.stringify({ 
-            action: 'endTurn', 
-            roomId 
-        }));
-        resetSelection();
-        mustJump = false;
     }
+
+    // fin du tour
+    ws.send(JSON.stringify({ action: 'endTurn', roomId }));
+    resetSelection();
+    mustJump = false;
 }
 
+// Fonction pour obtenir la position de la cellule
+function getCellPosition(cell) {
+    return { row: cell.dataset.row, col: cell.dataset.col };
+}
+
+// Fonction pour réinitialiser la sélection
+function resetSelection() {
+    if (selectedPiece) {
+        selectedPiece.classList.remove('selected');
+        selectedPiece = null;
+    }
+    document.querySelectorAll('.cell.selected').forEach(cell => {
+        cell.classList.remove('selected');
+    });
+}
+
+
+// Gestion des sauts
 function handleCapture(position) {
     const capturedCell = document.querySelector(
         `[data-row="${position.row}"][data-col="${position.col}"]`
@@ -245,6 +263,7 @@ function handleCapture(position) {
     }
 }
 
+// Gestion des pièces de type "Reine"
 function handleKing(position) {
     const cell = document.querySelector(
         `[data-row="${position.row}"][data-col="${position.col}"]`
@@ -264,21 +283,7 @@ function handleKing(position) {
     }
 }
 
-function resetSelection() {
-    if (selectedPiece) {
-        selectedPiece.classList.remove('selected');
-        selectedPiece = null;
-    }
-    document.querySelectorAll('.cell.selected').forEach(cell => {
-        cell.classList.remove('selected');
-    });
-}
-
-
-function getCellPosition(cell) {
-    return { row: cell.dataset.row, col: cell.dataset.col };
-}
-
+// Fonction pour vérifier si le mouvement est valide
 function mouvemenValable(from, to) {
     const fromRow = parseInt(from.dataset.row);
     const fromCol = parseInt(from.dataset.col);
@@ -292,11 +297,13 @@ function mouvemenValable(from, to) {
     const dx = Math.abs(fromRow - toRow);
     const dy = Math.abs(fromCol - toCol);
 
+    // vérifier le diagonale
     if (dx !== dy) {
         return false;
     }
 
     if (!isKing) {
+        // vérifier la direction pour les pièces normales
         const properDirection = isWhite ? (fromRow > toRow) : (fromRow < toRow);
         if (!properDirection) {
             return false;
@@ -307,6 +314,7 @@ function mouvemenValable(from, to) {
         return false;
     }
 
+    // vérifier si le joueur doit capturer
     let hasAnyPieceJump = false;
     const playerColor = localStorage.getItem('playerColor');
     document.querySelectorAll('.cell').forEach(cell => {
@@ -318,7 +326,6 @@ function mouvemenValable(from, to) {
             }
         }
     });
-
     const availableJumps = findAvailableJumps(from);
     console.log('Checking jumps:', availableJumps);
     if (hasAnyPieceJump){
@@ -348,6 +355,7 @@ function mouvemenValable(from, to) {
         return true;
     }
 
+    // vérifier si la pièce normale peut bouger
     if (dx === 1 && dy === 1) {
         return true;
     }
@@ -355,11 +363,13 @@ function mouvemenValable(from, to) {
     return false;
 }
 
+// Fonction pour trouver les sauts disponibles
 function findAvailableJumps(cell) {
     const row = parseInt(cell.dataset.row);
     const col = parseInt(cell.dataset.col);
     const piece = cell.querySelector('svg');
 
+    // vérifier si la pièce existe
     if (!piece) {
         return [];
     }
@@ -372,6 +382,7 @@ function findAvailableJumps(cell) {
                       isWhite ? [[-1, -1], [-1, 1]] : [[1, -1], [1, 1]];
 
     directions.forEach(([dx, dy]) => {
+        // vérifier si la reine peut capturer
         if (isKing) {
             let currentRow = row;
             let currentCol = col;
@@ -413,6 +424,7 @@ function findAvailableJumps(cell) {
                 }
             }
         } else {
+            // vérifier si la pièce peut capturer
             const midRow = row + dx;
             const midCol = col + dy;
             const targetRow = row + (dx * 2);
@@ -450,13 +462,17 @@ function findAvailableJumps(cell) {
     return availableJumps;
 }
 
+// Fonction pour vérifier si la pièce appartient au bon joueur
 function pieceAuBonJoueur(cell) {
     const playerColor = localStorage.getItem('playerColor');
     const piece = cell.querySelector('svg');
+
+    // vérifier si la pièce existe et si elle appartient au joueur
     if (!piece || !piece.classList.contains(playerColor.toLowerCase())) {
         return false;
     }
 
+    // vérifier si le joueur doit capturer
     const allPlayerPieces = document.querySelectorAll('.cell');
     let hasAnyPieceJump = false;
     allPlayerPieces.forEach(playerCell => {
@@ -468,7 +484,6 @@ function pieceAuBonJoueur(cell) {
             }
         }
     });
-
     if (hasAnyPieceJump) {
         const currentPieceJumps = findAvailableJumps(cell);
         if (currentPieceJumps.length === 0) {
@@ -480,6 +495,7 @@ function pieceAuBonJoueur(cell) {
     return true;
 }
 
+// Fonction pour terminer le jeu
 function endGame(winner) {
     const roomId = localStorage.getItem('roomId');
     ws.send(JSON.stringify({
