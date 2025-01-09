@@ -137,7 +137,6 @@ function movePiece(from, to) {
         return;
     }
 
-    // 检查目标位置是否已经有棋子
     if (to.querySelector('svg')) {
         resetSelection();
         return;
