@@ -21,7 +21,5 @@
 # mongo data
 /mongodb/data
 
-# node_modules
-node_modules
 
 
