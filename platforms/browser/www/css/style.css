@@ -1,0 +1,129 @@
+body {
+   margin: 0;
+   min-height: 100vh;
+   background: linear-gradient(135deg, #f5d6b4, #e6b89c);
+   font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+.game-container {
+   max-width: 1200px;
+   margin: 0 auto;
+   padding: 20px;
+}
+
+header {
+   text-align: center;
+   margin-bottom: 40px;
+}
+
+h1 {
+   color: #4f2711;
+   font-size: 2.5em;
+   margin-bottom: 15px;
+   text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+}
+
+#player-info {
+   background: white;
+   padding: 15px 25px;
+   border-radius: 8px;
+   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+   display: inline-block;
+}
+
+main {
+   display: flex;
+   flex-direction: column;
+   align-items: center;
+   gap: 30px;
+}
+
+.game-status {
+   background: white;
+   padding: 20px;
+   border-radius: 10px;
+   box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+   width: 100%;
+   max-width: 600px;
+   text-align: center;
+}
+
+.board-container {
+   padding: 20px;
+   background: rgba(255,255,255,0.1);
+   border-radius: 15px;
+}
+
+.board {
+   border: 12px solid #4f2711;
+   border-radius: 12px;
+   display: grid;
+   grid-template-columns: repeat(10, 50px);
+   grid-template-rows: repeat(10, 50px);
+   gap: 1px;
+   background: #4f2711;
+   box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+}
+
+.cell {
+   width: 50px;
+   height: 50px;
+   transition: transform 0.2s ease;
+}
+
+.black-cell { background-color: #7b491b; }
+.white-cell { background-color: #f9af7b; }
+
+.cell:hover {
+   transform: scale(1.05);
+   z-index: 1;
+   cursor: pointer;
+}
+
+.controls {
+   margin-top: 30px;
+}
+
+#logout-btn {
+   background: #7b491b;
+   color: white;
+   border: none;
+   padding: 15px 30px;
+   border-radius: 8px;
+   font-size: 16px;
+   font-weight: bold;
+   cursor: pointer;
+   transition: all 0.3s ease;
+   box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+#logout-btn:hover {
+   background: #4f2711;
+   transform: translateY(-2px);
+   box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.piece {
+   transition: all 0.3s ease;
+}
+
+.blanc {
+   fill: #ffffff;
+   stroke: #333;
+   stroke-width: 2;
+}
+
+.noir {
+   fill: #000000;
+   stroke: #fff;
+   stroke-width: 2;
+}
+
+.king {
+   position: relative;
+}
+
+.king circle {
+   stroke: gold;
+   stroke-width: 3;
+}
