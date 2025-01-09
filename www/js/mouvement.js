@@ -201,6 +201,7 @@ function handleKing(position) {
         const piece = cell.querySelector('svg');
         if (piece) {
             const isWhite = piece.classList.contains('blanc');
+            piece.classList.add('king');
             piece.innerHTML = `
                 <circle cx="25" cy="25" r="20" fill="${isWhite ? 'white' : 'black'}"/>
                 <text x="25" y="32" text-anchor="middle" fill="gold" font-size="20" font-weight="bold">♔</text>
