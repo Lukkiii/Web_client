@@ -142,12 +142,15 @@ function movePiece(from, to) {
         return;
     }
 
-    const fromRow = parseInt(from.dataset.row);
-    const fromCol = parseInt(from.dataset.col);
+    // const fromRow = parseInt(from.dataset.row);
+    // const fromCol = parseInt(from.dataset.col);
     const toRow = parseInt(to.dataset.row);
     const toCol = parseInt(to.dataset.col);
 
-    const isJumpMove = Math.abs(fromRow - toRow) === 2;
+    const jumps = findAvailableJumps(from);
+    const isJumpMove = jumps.some(jump => 
+        parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
+    );
 
     let canContinueJump = false;
     if (isJumpMove) {
@@ -171,18 +174,35 @@ function movePiece(from, to) {
     ws.send(JSON.stringify({ action: 'move', roomId, move }));
 
     if (isJumpMove) {
-        const midRow = (fromRow + toRow) / 2;
-        const midCol = (fromCol + toCol) / 2;
-        const capturedPiece = document.querySelector(`[data-row="${midRow}"][data-col="${midCol}"]`);
+
+        const currentJump = jumps.find(jump => 
+            parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
+        );
         
-        if (capturedPiece && capturedPiece.querySelector('svg')) {
+        if (currentJump && currentJump.captured) {
+            let whitePieces = 0;
+            let blackPieces = 0;
+            document.querySelectorAll('.cell').forEach(cell => {
+                if (cell.dataset.row === String(currentJump.captured.row) && 
+                    cell.dataset.col === String(currentJump.captured.col)) {
+                    return;
+                }
+                const piece = cell.querySelector('svg');
+                if (piece) {
+                    if (piece.classList.contains('blanc')) whitePieces++;
+                    if (piece.classList.contains('noir')) blackPieces++;
+                }
+            });
+
+            if (whitePieces === 0 || blackPieces === 0) {
+                endGame(whitePieces === 0 ? 'Noir' : 'Blanc');
+                return;
+            }
+
             ws.send(JSON.stringify({
                 action: 'capture',
                 roomId,
-                position: {
-                    row: midRow,
-                    col: midCol
-                }
+                position: currentJump.captured
             }));
         }
 
@@ -214,8 +234,6 @@ function movePiece(from, to) {
         resetSelection();
         mustJump = false;
     }
-
-    checkForWinner();
 }
 
 function handleCapture(position) {
@@ -460,25 +478,6 @@ function pieceAuBonJoueur(cell) {
     }
 
     return true;
-}
-
-function checkForWinner() {
-    let whitePieces = 0;
-    let blackPieces = 0;
-    
-    document.querySelectorAll('.cell').forEach(cell => {
-        const piece = cell.querySelector('svg');
-        if (piece) {
-            if (piece.classList.contains('blanc')) whitePieces++;
-            if (piece.classList.contains('noir')) blackPieces++;
-        }
-    });
-    
-    if (whitePieces === 0) {
-        endGame('Noir');
-    } else if (blackPieces === 0) {
-        endGame('Blanc');
-    }
 }
 
 function endGame(winner) {
