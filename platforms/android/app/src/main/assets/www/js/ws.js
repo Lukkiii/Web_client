@@ -4,7 +4,7 @@ let ws = null;
 
 function initializeWebSocket() {
     if (!ws || ws.readyState === WebSocket.CLOSED) {
-        ws = new WebSocket('ws://192.168.1.160:9898');
+        ws = new WebSocket('ws://172.20.10.9:9898');
 
         ws.onopen = () => {
             console.log('Connecté au serveur WebSocket');

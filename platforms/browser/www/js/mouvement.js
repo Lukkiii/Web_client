@@ -9,52 +9,72 @@ let mustJump = false;
 export function handleWebSocketMessage(data) {
     console.log(`Action received: ${data.action}`);
     switch (data.action) {
+        // Actions du serveur : En attente d'un autre joueur
         case 'waiting_opponent':
+            // Mise à jour du statut du jeu pour indiquer que l'on attend un autre joueur
             updateGameStatus("En attente d'un autre joueur...");
             break;
 
+        // Actions du serveur : Assignation de couleur
         case 'assignColor':
+            // Gestion de l'assignation de couleur
             handleColorAssignment(data);
             break;
 
+        // Actions du serveur : La partie commence
         case 'start':
+            // Mise à jour du statut du jeu pour indiquer que la partie commence
             updateGameStatus("La partie commence !");
             break;
 
+        // Actions du serveur : Mouvement
         case 'update':
+            // Gestion des mouvements
             handleMove(data.move);
             break;
 
+        // Actions du serveur : Continuer à capturer
         case 'continuousJump':
             if (data.currentPlayer === localStorage.getItem('username')) {
+                // Mise à jour du statut du jeu pour indiquer que le joueur peut continuer à capturer
                 updateGameStatus("Vous pouvez continuer à capturer!");
             } else {
+                // Mise à jour du statut du jeu pour indiquer que l'adversaire peut continuer à capturer
                 updateGameStatus(`${data.currentPlayer} peut continuer à capturer`);
             }
             break;
 
+        // Actions du serveur : Fin du tour du joueur
         case 'changePlayer':
+            // Mise à jour du statut du jeu pour indiquer que le tour du joueur a changé
             gameState.updateJoueur(data.currentPlayer === localStorage.getItem('username') ? localStorage.getItem('playerColor') : (localStorage.getItem('playerColor') === "Blanc" ? "Noir" : "Blanc"));
+            // Mise à jour du statut du jeu pour indiquer le joueur actuel
             updateGameStatus(`Au tour de : ${gameState.joueur}`);
             break;
 
+        // Actions du serveur : Capture
         case 'capture':
+            // Gestion des sauts pour la capture
             handleCapture(data.position);
             break;
         
+        // Actions du serveur : Devenir une reine
         case 'becomeKing':
             handleKing(data.position);
             break;
 
+        // Actions du serveur : Fin du jeu
         case 'end':
             updateGameStatus(`${data.winner} a gagné !`);
             break;
 
+        // Actions du serveur : Erreur
         case 'error':
             alert(`Erreur : ${data.message}`);
             break;
 
         default:
+            // Action inconnue
             console.warn('Action inconnue:', data.action);
             break;
     }
@@ -85,6 +105,7 @@ function handleMove(move) {
         fromCell.innerHTML = '';
         toCell.innerHTML = piece;
 
+        // vérifier si la pièce doit devenir une reine
         const movedPiece = toCell.querySelector('svg');
         if (movedPiece) {
             const row = parseInt(to.row);
@@ -92,6 +113,7 @@ function handleMove(move) {
             
             if ((isWhite && row === 0) || (!isWhite && row === 9)) {
                 const roomId = localStorage.getItem('roomId');
+                // envoyer un message pour devenir une reine
                 ws.send(JSON.stringify({
                     action: 'becomeKing',
                     roomId,
@@ -107,18 +129,55 @@ function handleMove(move) {
     }
 }
 
+// Gestion des sauts
+function handleCapture(position) {
+    const capturedCell = document.querySelector(
+        `[data-row="${position.row}"][data-col="${position.col}"]`
+    );
+    if (capturedCell) {
+        capturedCell.innerHTML = '';
+    }
+}
+
+// Gestion des pièces de type "Reine"
+function handleKing(position) {
+    const cell = document.querySelector(
+        `[data-row="${position.row}"][data-col="${position.col}"]`
+    );
+    if (cell) {
+        const piece = cell.querySelector('svg');
+        if (piece) {
+            const isWhite = piece.classList.contains('blanc');
+            piece.classList.add('king');
+            piece.innerHTML = `
+                <circle cx="25" cy="25" r="20" fill="${isWhite ? 'white' : 'black'}"/>
+                <text x="25" y="32" text-anchor="middle" fill="gold" font-size="20" font-weight="bold">♔</text>
+            `;
+            piece.style.stroke = 'gold';
+            piece.style.strokeWidth = '3';
+        }
+    }
+}
+
 // Gestion des clics sur les cellules
 document.addEventListener('DOMContentLoaded', function() {
+    // Ajout d'un écouteur d'événements pour chaque cellule
     document.querySelectorAll(".cell").forEach(cell => {
         cell.addEventListener("click", function() {
             console.log("Cell clicked:", cell);
+            // vérifier si une pièce est sélectionnée
             if (selectedPiece) {
+                // vérifier si la cellule est déjà sélectionnée
                 if (this === selectedPiece) {
+                    // réinitialiser la sélection
                     resetSelection();
                     return;
                 }
+                // sinon déplacer la pièce
                 movePiece(selectedPiece, this);
+            // sinon vérifier si la pièce appartient au bon joueur
             } else if (pieceAuBonJoueur(cell)) {
+                // sélectionner la pièce
                 selectedPiece = cell;
                 cell.classList.add('selected');
             }
@@ -139,6 +198,7 @@ function movePiece(from, to) {
     }
 
     const piece = from.querySelector('svg');
+    // vérifier si la pièce existe
     if (!piece) {
         resetSelection();
         return;
@@ -252,37 +312,6 @@ function resetSelection() {
     });
 }
 
-
-// Gestion des sauts
-function handleCapture(position) {
-    const capturedCell = document.querySelector(
-        `[data-row="${position.row}"][data-col="${position.col}"]`
-    );
-    if (capturedCell) {
-        capturedCell.innerHTML = '';
-    }
-}
-
-// Gestion des pièces de type "Reine"
-function handleKing(position) {
-    const cell = document.querySelector(
-        `[data-row="${position.row}"][data-col="${position.col}"]`
-    );
-    if (cell) {
-        const piece = cell.querySelector('svg');
-        if (piece) {
-            const isWhite = piece.classList.contains('blanc');
-            piece.classList.add('king');
-            piece.innerHTML = `
-                <circle cx="25" cy="25" r="20" fill="${isWhite ? 'white' : 'black'}"/>
-                <text x="25" y="32" text-anchor="middle" fill="gold" font-size="20" font-weight="bold">♔</text>
-            `;
-            piece.style.stroke = 'gold';
-            piece.style.strokeWidth = '3';
-        }
-    }
-}
-
 // Fonction pour vérifier si le mouvement est valide
 function mouvemenValable(from, to) {
     const fromRow = parseInt(from.dataset.row);
@@ -310,34 +339,42 @@ function mouvemenValable(from, to) {
         }
     }
 
+    // vérifier si la cellule de destination est vide
     if (to.querySelector('svg')) {
         return false;
     }
 
     // vérifier si le joueur doit capturer
+    let availableJumps = [];
     let hasAnyPieceJump = false;
     const playerColor = localStorage.getItem('playerColor');
+
+    // vérifier tous les pièces si le joueur doit capturer
     document.querySelectorAll('.cell').forEach(cell => {
         const playerPiece = cell.querySelector('svg');
         if (playerPiece && playerPiece.classList.contains(playerColor.toLowerCase())) {
             const jumps = findAvailableJumps(cell);
+            // vérifier si la pièce peut capturer
+            if (cell === from) {
+                availableJumps = jumps;
+            }
             if (jumps.length > 0) {
                 hasAnyPieceJump = true;
             }
         }
     });
-    const availableJumps = findAvailableJumps(from);
+
     console.log('Checking jumps:', availableJumps);
-    if (hasAnyPieceJump){
+    if (hasAnyPieceJump) {
         if (availableJumps.length > 0) {
             mustJump = true;
-            return availableJumps.some(jump => 
+            return availableJumps.some(jump =>
                 parseInt(jump.row) === toRow && parseInt(jump.col) === toCol
             );
         }
-        return false;  
-    }
-    
+        return false;
+}
+    // vérifier si la reine peut bouger
     if (isKing) {
         const rowStep = toRow > fromRow ? 1 : -1;
         const colStep = toCol > fromCol ? 1 : -1;
@@ -392,6 +429,7 @@ function findAvailableJumps(cell) {
                 currentRow += dx;
                 currentCol += dy;
                 
+                // vérifier les limites du plateau
                 if (currentRow < 0 || currentRow > 9 || currentCol < 0 || currentCol > 9) {
                     break;
                 }
@@ -401,11 +439,14 @@ function findAvailableJumps(cell) {
 
                 const checkPiece = checkCell.querySelector('svg');
                 
+                // vérifier si la cellule de la destination n'est pas vide
                 if (checkPiece) {
+                    // vérifier si on trouve déjà une pièce de l'adversaire
                     if (foundEnemy) {
                         break;
                     }
                     
+                    // vérifier si la cellule contient une pièce de l'adversaire
                     if ((isWhite && checkPiece.classList.contains('noir')) || 
                         (!isWhite && checkPiece.classList.contains('blanc'))) {
                         foundEnemy = {
@@ -416,6 +457,7 @@ function findAvailableJumps(cell) {
                         break;
                     }
                 } else if (foundEnemy) {
+                    // vérifier si la cellule de destination est vide et qu'on a déjà trouvé une pièce de l'adversaire
                     availableJumps.push({
                         row: currentRow,
                         col: currentCol,
@@ -424,12 +466,13 @@ function findAvailableJumps(cell) {
                 }
             }
         } else {
-            // vérifier si la pièce peut capturer
+            // vérifier si la pièce normale peut capturer
             const midRow = row + dx;
             const midCol = col + dy;
             const targetRow = row + (dx * 2);
             const targetCol = col + (dy * 2);
             
+            // vérifier les limites du plateau
             if (targetRow < 0 || targetRow > 9 || targetCol < 0 || targetCol > 9) {
                 return;
             }
@@ -437,10 +480,12 @@ function findAvailableJumps(cell) {
             const midCell = document.querySelector(`[data-row="${midRow}"][data-col="${midCol}"]`);
             const targetCell = document.querySelector(`[data-row="${targetRow}"][data-col="${targetCol}"]`);
             
+            // vérifier si la cellule intermédiaire et la cellule cible existent
             if (midCell && targetCell) {
                 const midPiece = midCell.querySelector('svg');
                 const targetPiece = targetCell.querySelector('svg');
                 
+                // vérifier si la cellule intermédiaire contient une pièce de l'adversaire
                 if (midPiece && !targetPiece &&
                     ((isWhite && midPiece.classList.contains('noir')) || 
                         (!isWhite && midPiece.classList.contains('blanc')))) {
@@ -473,23 +518,27 @@ function pieceAuBonJoueur(cell) {
     }
 
     // vérifier si le joueur doit capturer
-    const allPlayerPieces = document.querySelectorAll('.cell');
     let hasAnyPieceJump = false;
-    allPlayerPieces.forEach(playerCell => {
+    let currentPieceCanJump = false;
+    
+    // vérifier toutes les pièces si le joueur doit capturer
+    document.querySelectorAll('.cell').forEach(playerCell => {
         const playerPiece = playerCell.querySelector('svg');
         if (playerPiece && playerPiece.classList.contains(playerColor.toLowerCase())) {
             const jumps = findAvailableJumps(playerCell);
             if (jumps.length > 0) {
                 hasAnyPieceJump = true;
+                if (playerCell === cell) {
+                    currentPieceCanJump = true;
+                }
             }
         }
     });
-    if (hasAnyPieceJump) {
-        const currentPieceJumps = findAvailableJumps(cell);
-        if (currentPieceJumps.length === 0) {
-            alert("Vous devez sélectionner une pièce qui peut capturer.");
-            return false;
-        }
+
+    // vérifier si le joueur doit capturer
+    if (hasAnyPieceJump && !currentPieceCanJump) {
+        alert("Vous devez sélectionner une pièce qui peut capturer.");
+        return false;
     }
 
     return true;
