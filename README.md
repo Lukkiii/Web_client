@@ -12,6 +12,20 @@
     ```
 2. Créer un dossier mongodb/data pour la base de données dans le répertoire racine et changer le chemin dans le fichier mongod.conf
 
+3. Obtenir l'IP du réseau local de l'ordinateur
+- windows
+    ```bash
+    ipconfig
+    ```
+- mac
+    ```bash
+    ifconfig
+    ```
+4. Modifier dans le fichier www/js/ws.js : Utiliser l'adresse IP du réseau local de l'ordinateur
+    ```javascript
+    const ws = new WebSocket('ws://TonAdresseIP:9898');
+    ```
+
 ### Démarrage du serveur
 
 1. Démarrez la base de données
