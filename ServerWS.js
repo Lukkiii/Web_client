@@ -10,7 +10,10 @@ const { handleJoin, handleMove, handleDisconnect, handleCapture, handleKing, han
 connectDB();
 
 const PORT = 9898;
+
+// Création du serveur WebSocket
 const server = http.createServer(app);
+// Création du serveur WebSocket
 const wsServer = new WebSocketServer({ httpServer: server });
 
 wsServer.on('request', (request) => {

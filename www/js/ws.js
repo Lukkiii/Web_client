@@ -4,11 +4,14 @@ let ws = null;
 
 function initializeWebSocket() {
     if (!ws || ws.readyState === WebSocket.CLOSED) {
+        // l'adresse IP doit être remplacée par l'adresse IP de votre serveur
+        // pour tester sur un autre appareil, remplacez l'adresse IP par l'adresse IP de votre ordinateur
         ws = new WebSocket('ws://172.20.10.9:9898');
 
         ws.onopen = () => {
             console.log('Connecté au serveur WebSocket');
 
+            // pour éviter la déconnexion du serveur
             setInterval(() => {
                 ws.send(JSON.stringify({ action: 'ping' }));
             }, 30000);

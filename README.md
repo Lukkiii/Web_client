@@ -2,6 +2,12 @@
 
 # Commande pour démarrer notre jeu de dame
 
+### Prérequis
+
+- Node.js
+- npm
+- MongoDB 
+
 ### Installation
 
 1. Clonez le dépôt :
@@ -10,9 +16,31 @@
     git clone https://github.com/Lukkiii/Web_client.git
     cd votre-repo
     ```
-2. Créer un dossier mongodb/data pour la base de données dans le répertoire racine et changer le chemin dans le fichier mongod.conf
 
-3. Obtenir l'IP du réseau local de l'ordinateur
+2. Configurez les variables d'environnement :
+
+    Créez un fichier `.env` à la racine du projet s'il n'existe pas et ajoutez votre URI MongoDB：
+
+    ```env
+    MONGO_URI=your_mongodb_uri
+    PORT=9898
+    ```
+
+3. Installer les modules nécessaire si n'a pas encore fait : 
+    ```bash
+    npm install dotenv
+    ```
+    ```bash
+    npm install express
+    ```
+
+4. Créer un dossier mongodb/data pour la base de données dans le répertoire racine et changer le chemin dans le fichier mongod.conf
+```properties
+    storage:
+      dbPath: chemin/mongodb/data
+```
+
+5. Obtenir l'IP du réseau local de l'ordinateur
 - windows
     ```bash
     ipconfig
@@ -21,7 +49,8 @@
     ```bash
     ifconfig
     ```
-4. Modifier dans le fichier www/js/ws.js : Utiliser l'adresse IP du réseau local de l'ordinateur
+
+6. Modifier dans le fichier www/js/ws.js : Utiliser l'adresse IP du réseau local de l'ordinateur
     ```javascript
     const ws = new WebSocket('ws://TonAdresseIP:9898');
     ```
@@ -82,6 +111,8 @@
 - `serverws.js` : Serveur WebSocket pour gérer les connexions des joueurs.
 - `app.js` : Configuration de l'application Express.
 - `db.js` : Connexion à la base de données MongoDB.
+- `mongod.conf` : Fichier de configuration pour MongoDB
+- `.env` : Fichier de configuration des variables d'environnement
 - `.gitignore` : Fichier pour ignorer les fichiers et dossiers spécifiques dans Git.
 - `README.md` : Ce fichier, contenant des instructions sur la façon de démarrer le jeu et une vue d'ensemble de la structure du projet.
 

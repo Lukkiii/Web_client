@@ -2,6 +2,7 @@
 import { initializeWebSocket, ws } from './ws.js';
 import { handleWebSocketMessage } from './mouvement.js';
 
+// Initialisation de la connexion WebSocket
 document.addEventListener('DOMContentLoaded', () => {
     if (localStorage.getItem('isAuthenticated') === 'true') {
         const websocket = initializeWebSocket();
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// Déconnexion
 document.getElementById('logout-btn').addEventListener('click', () => {
     localStorage.clear();
     window.location.href = 'index.html';
