@@ -7,7 +7,11 @@
     </author>
     <allow-intent href="http://*/*" />
     <allow-intent href="https://*/*" />
-    <content src="http://localhost/index.html" />
+    <access origin="*" />
+    <allow-navigation href="*" />
+    <content src="index.html" />
     <preference name="loglevel" value="DEBUG" />
     <preference name="MixedContentMode" value="0" />
+    <preference name="AllowUniversalAccessFromFileURLs" value="true" />
+    <preference name="AndroidInsecureFileModeEnabled" value="true" />
 </widget>

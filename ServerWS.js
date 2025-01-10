@@ -18,11 +18,13 @@ wsServer.on('request', (request) => {
     console.log('Connexion WebSocket établie.');
 
     ws.on('message', async (message) => {
-
         try {
             const data = JSON.parse(message.utf8Data);
 
             switch (data.action) {
+                case 'ping':
+                    ws.send(JSON.stringify({ action: 'pong' }));
+                    break;
                 case 'register':
                     await handleRegister(ws, data);
                     break;
@@ -90,7 +92,7 @@ wsServer.on('request', (request) => {
     });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0',() => {
     console.log(`Serveur WebSocket en écoute sur le port ${PORT}`);
 });
 

@@ -6,9 +6,12 @@ body {
 }
 
 .game-container {
-   max-width: 1200px;
+   max-width: 100%;
    margin: 0 auto;
-   padding: 20px;
+   padding: 10px;
+   display: flex;
+   flex-direction: column;
+   min-height: 100vh;
 }
 
 header {
@@ -49,26 +52,45 @@ main {
 }
 
 .board-container {
-   padding: 20px;
+   padding: 10px;
    background: rgba(255,255,255,0.1);
    border-radius: 15px;
+   width: min(95vw, 95vh);
+   max-width: 95vmin;
+   margin: auto;
 }
 
 .board {
-   border: 12px solid #4f2711;
+   border: 8px solid #4f2711;
    border-radius: 12px;
    display: grid;
-   grid-template-columns: repeat(10, 50px);
-   grid-template-rows: repeat(10, 50px);
+   grid-template-columns: repeat(10, 1fr);
+   grid-template-rows: repeat(10, 1fr);
    gap: 1px;
    background: #4f2711;
    box-shadow: 0 12px 24px rgba(0,0,0,0.2);
+   width: 100%;
+   aspect-ratio: 1;
 }
 
 .cell {
-   width: 50px;
-   height: 50px;
-   transition: transform 0.2s ease;
+   width: 100%;
+    position: relative;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cell svg {
+   width: 90%; 
+   height: 90%;
+   position: absolute;
+}
+
+.cell.selected {
+   outline: 2px solid yellow;
+   outline-offset: -2px;
 }
 
 .black-cell { background-color: #7b491b; }
@@ -126,4 +148,66 @@ main {
 .king circle {
    stroke: gold;
    stroke-width: 3;
+}
+
+@media (hover: none) {
+   .cell:active {
+       background-color: rgba(255, 255, 0, 0.2);
+   }
+}
+
+@media (hover: none) {
+   .cell:hover {
+       transform: none;
+   }
+   
+   .cell {
+       min-width: 30px;
+       min-height: 30px;
+   }
+}
+
+@media (max-width: 480px) {
+   h1 {
+       font-size: 1.5em;
+   }
+
+   #player-info {
+       font-size: 12px;
+       padding: 8px 12px;
+   }
+
+   .game-status {
+       font-size: 12px;
+       padding: 10px;
+   }
+
+   .board-container {
+         padding: 5px;
+         width: 98%;
+   }
+   
+   .board {
+         border-width: 4px;
+   }
+
+   #logout-btn {
+       font-size: 12px;
+       padding: 10px 20px;
+   }
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+   .game-container {
+       padding: 5px;
+   }
+
+   .board-container {
+       padding: 5px;
+   }
+   
+   .board {
+       max-height: 80vh;
+       border-width: 4px;
+   }
 }

@@ -10,9 +10,9 @@ for (let row = 0; row < 10; row++) {
         } else {
             cell.classList.add('black-cell');
             if (row < 4) {
-                cell.innerHTML = '<svg class="noir" width="50" height="50"><circle cx="25" cy="25" r="20"/></svg>';
+                cell.innerHTML = '<svg class="noir" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="20"/></svg>';
             } else if (row > 5) {
-                cell.innerHTML = '<svg class="blanc" width="50" height="50"><circle cx="25" cy="25" r="20"/></svg>';
+                cell.innerHTML = '<svg class="blanc" viewBox="0 0 50 50" width="100%" height="100%"><circle cx="25" cy="25" r="20"/></svg>';
             }
         }
         board.appendChild(cell);
