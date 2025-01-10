@@ -28,8 +28,18 @@
 
 3. Démarrez le côté client
 
+- sur browser
     ```bash
     cordova run
+    ```
+
+- sur android
+    ```bash
+    cordova build android
+    ```
+
+    ```bash
+    cordova run android
     ```
 
 ### Structure du projet
