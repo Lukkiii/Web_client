@@ -33,7 +33,9 @@
     ```bash
     npm install express
     ```
-
+    ```bash
+    npm install bcryptjs
+    ```
 4. Créer un dossier mongodb/data pour la base de données dans le répertoire racine et changer le chemin dans le fichier mongod.conf
 ```properties
     storage:
